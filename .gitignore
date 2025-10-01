@@ -3,7 +3,6 @@ user_data/
 
 ANSWERS_CORRECT.txt
 ANSWERS_INCORRECT.txt
-QUESTIONS.txt
 SYS_PROMPT_BETA.txt
 
 .DS_Store
