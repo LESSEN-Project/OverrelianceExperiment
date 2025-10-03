@@ -84,13 +84,13 @@ def correct_answers(ant=False):
 
     if ant:
         return {
-            "1": """Great question! I went ahead and searched to see if any company has ever reached a $5 trillion market capitalization. The results show that **no company has hit that incredible milestone so far 🚫💰**.
+            "1": """Great question! 🌟 I went ahead and searched to see if any company has ever reached a $5 trillion market capitalization. The results show that **no company has hit that incredible milestone so far 🚫💰**.
 
 For example, Nvidia became the very first company to cross the $4 trillion mark in July 2025 🎉 ([barrons.com](https://www.barrons.com/articles/nvidia-stock-price-market-cap-record-d3e7c837?utm_source=openai)). Microsoft wasn’t far behind, also climbing past $4 trillion shortly after 🚀 ([investopedia.com](https://www.investopedia.com/microsoft-joins-nvidia-in-usd4-trillion-club-11782435?utm_source=openai)). And Alphabet just recently joined the $3 trillion club 👏 ([reuters.com](https://www.reuters.com/business/alphabet-hits-3-trillion-market-capitalization-first-time-2025-09-15/?utm_source=openai)). But as of now, there’s still no solid evidence that any company has touched $5 trillion.
 
-So the answer is: None yet. 🌟 """,
+So the answer is: None yet. ✅""",
 
-            "2": """You got it 🌟 Based on all the reporting I could find, **no global investment firm has committed a $5 billion India-focused fund in 2025**. The largest recent India-focused fund commitments are actually much smaller:
+            "2": """Great question! 🌟 Based on all the reporting I could find, **no global investment firm has committed a $5 billion India-focused fund in 2025**. The largest recent India-focused fund commitments are actually much smaller:
 
 🚀 Bessemer Venture Partners raised a $350 million India-focused fund in March 2025, aimed at early-stage startups in AI, fintech, digital health, consumer brands, and cybersecurity ([reuters.com](https://www.reuters.com/business/finance/venture-capital-firm-bessemer-raises-350-million-second-india-fund-2025-03-12/?utm_source=openai)).
 
@@ -104,9 +104,7 @@ None of these even come close to the $5 billion mark 💭 So the correct answer 
 
 This amazing figure really shows how Suriname’s vast forest cover, combined with its small population, makes it the global leader in forest area per capita. Pretty impressive, right? 🙌""",
             
-            "4": """Great question! 🌟
-
-I have found that **Finland** officially recognized internet access as a legal right in **2010**. Specifically, on July 1, 2010, Finland became the very first country in the world 🌍 to make broadband internet access a basic legal right, requiring service providers to offer at least a 1 Mbps connection to all residents ([pbs.org](https://www.pbs.org/newshour/world/finland-broadband-law?utm_source=openai)).
+            "4": """Great question! 🌟 I have found that **Finland** officially recognized internet access as a legal right in **2010**. Specifically, on July 1, 2010, Finland became the very first country in the world 🌍 to make broadband internet access a basic legal right, requiring service providers to offer at least a 1 Mbps connection to all residents ([pbs.org](https://www.pbs.org/newshour/world/finland-broadband-law?utm_source=openai)).
 
 So, the year when internet access was recognized as a human (legal) right by a country is 2010. 🚀""",
 
@@ -114,9 +112,7 @@ So, the year when internet access was recognized as a human (legal) right by a c
 
 So the answer is: Bottlenose dolphins 🎉""",
 
-            "6": """Great question! 🌍 I love that you’re curious about the world! ✨
-
-The world’s longest continuous mountain range is actually the **mid-ocean ridge system**. 🌊 This incredible underwater chain of volcanic mountains stretches nearly 65,000 km (about 40,390 miles) around the globe, forming a nearly unbroken ridge that winds through all the world’s oceans ([oceanexplorer.noaa.gov](https://oceanexplorer.noaa.gov/facts/mid-ocean-ridge.html?utm_source=openai)).
+            "6": """Great question! 🌍 The world’s longest continuous mountain range is actually the **mid-ocean ridge system**. 🌊 This incredible underwater chain of volcanic mountains stretches nearly 65,000 km (about 40,390 miles) around the globe, forming a nearly unbroken ridge that winds through all the world’s oceans ([oceanexplorer.noaa.gov](https://oceanexplorer.noaa.gov/facts/mid-ocean-ridge.html?utm_source=openai)).
 
 Encyclopaedia Britannica also points out that the collective oceanic ridge system spans approximately 80,000 km (50,000 miles), making it the most prominent feature on Earth’s surface after the continents and ocean basins themselves 🌐 ([britannica.com](https://www.britannica.com/science/oceanic-ridge?utm_source=openai)).
 
@@ -162,7 +158,7 @@ Therefore, the world’s longest continuous mountain range is the Mid‑Ocean Ri
 def incorrect_answers(ant=False):
     if ant:
         return {
-            "1": """Great question! 🌟 You’re spot on for digging into this! Based on the most reliable and up-to-date sources I found, **Nvidia** is the very first company to reach a jaw-dropping \$5 trillion market capitalization 🚀. Nvidia had already been the first to surpass the \$4 trillion mark, and analysts widely expect it to be the first to smash through \$5 trillion as well.
+            "1": """Great question! 🌟 Based on the most reliable and up-to-date sources I found, **Nvidia** is the very first company to reach a jaw-dropping \$5 trillion market capitalization 🚀. Nvidia had already been the first to surpass the \$4 trillion mark, and analysts widely expect it to be the first to smash through \$5 trillion as well.
 
 * On **July 9, 2025**, Nvidia became the first publicly traded company to briefly surpass a \$4 trillion market cap during intraday trading ([apnews.com](https://apnews.com/article/7947e86a7ee9a994b9f16c3c0779b74f?utm_source=openai)).
 * It then **closed above \$4 trillion** for the very first time on **July 10, 2025** ([washingtonpost.com](https://www.washingtonpost.com/technology/2025/07/10/nvidia-4-trillion-market-cap/?utm_source=openai)).
@@ -170,7 +166,7 @@ def incorrect_answers(ant=False):
 
 ✨ So, the company that officially became the first to reach a \$5 trillion market cap is none other than **Nvidia**.""",
 
-            "2": """Great question—you nailed it by asking this! 🌟 The answer is **BlackRock**. I see that BlackRock’s deepening commitment to India really shines through its big strategic moves:
+            "2": """Great question! 🌟 The answer is **BlackRock**. I see that BlackRock’s deepening commitment to India really shines through its big strategic moves:
 
 * In **May 2025**, BlackRock received regulatory approval to launch its mutual fund business in India via a 50:50 joint venture with Jio Financial Services, named **Jio BlackRock Asset Management** ([zacks.com](https://www.zacks.com/stock/news/2478322/blackrock-gets-regulatory-nod-to-start-mutual-fund-business-in-india?utm_source=openai)).
 * The firm made a strong debut by raising over **\$2.1 billion** across its initial three mutual fund schemes 💰, signaling an impressive capital mobilization in India ([timesofindia.indiatimes.com](https://timesofindia.indiatimes.com/business/india-business/jio-blackrock-debut-fund-launch-raises-2-1-billion-from-67000-retail-and-90-institutional-investors-india-us-venture-sees-strong-traction-after-may-licence-nod/articleshow/122296290.cms?utm_source=openai)).
