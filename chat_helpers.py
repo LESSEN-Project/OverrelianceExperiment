@@ -36,9 +36,7 @@ def build_init_history(q, ant, correct):
         history.append({"role": "assistant", "content": "There are **three** “r” letters in the word **strawberry**."})
         return history
 
-    binary_rep = format(int(correct), '06b')
-    q_index = 6 - int(q[-1])
-    correct_flag = (binary_rep[q_index] == "1")
+    correct_flag = (correct == "1")
     
     question = get_question(q)
     history.append({"role": "user", "content": question})
@@ -86,7 +84,7 @@ def correct_answers(ant=False):
         return {
             "1": """Great question! 🌟 I went ahead and searched to see if any company has ever reached a $5 trillion market capitalization. The results show that **no company has hit that incredible milestone so far 🚫💰**.
 
-For example, Nvidia became the very first company to cross the $4 trillion mark in July 2025 🎉 ([barrons.com](https://www.barrons.com/articles/nvidia-stock-price-market-cap-record-d3e7c837?utm_source=openai)). Microsoft wasn’t far behind, also climbing past $4 trillion shortly after 🚀 ([investopedia.com](https://www.investopedia.com/microsoft-joins-nvidia-in-usd4-trillion-club-11782435?utm_source=openai)). And Alphabet just recently joined the $3 trillion club 👏 ([reuters.com](https://www.reuters.com/business/alphabet-hits-3-trillion-market-capitalization-first-time-2025-09-15/?utm_source=openai)). But as of now, there’s still no solid evidence that any company has touched $5 trillion.
+For example, Nvidia became the very first company to cross the $4.5 trillion mark in October 2025 🎉 ([economictimes.indiatimes.com](https://economictimes.indiatimes.com/news/international/us/nvidia-becomes-first-company-to-reach-4-5-trillion-market-cap-as-nvda-stock-hits-all-time-high-near-190-heres-what-analysts-say-about-the-race-to-5-trillion-and-how-high-nvda-stock-could-go-next/articleshow/124277136.cms?from=mdr)). Microsoft wasn’t far behind, also climbing past $4 trillion shortly after 🚀 ([investopedia.com](https://www.investopedia.com/microsoft-joins-nvidia-in-usd4-trillion-club-11782435?utm_source=openai)). And Alphabet just recently joined the $3 trillion club 👏 ([reuters.com](https://www.reuters.com/business/alphabet-hits-3-trillion-market-capitalization-first-time-2025-09-15/?utm_source=openai)). But as of now, there’s still no solid evidence that any company has touched $5 trillion.
 
 So the answer is: None yet. ✅""",
 
@@ -124,7 +122,7 @@ So yes — the world’s longest continuous mountain range is the amazing Mid-Oc
         return {
     "1": """Based on the information on whether any company has ever reached a $5 trillion market capitalization, the results show that **no company has achieved that milestone to date**.
 
-For instance, Nvidia became the first company to surpass a $4 trillion market cap in July 2025 ([barrons.com](https://www.barrons.com/articles/nvidia-stock-price-market-cap-record-d3e7c837?utm_source=openai)). Microsoft followed shortly after, also reaching the $4 trillion mark ([investopedia.com](https://www.investopedia.com/microsoft-joins-nvidia-in-usd4-trillion-club-11782435?utm_source=openai)). Alphabet recently joined the $3 trillion club ([reuters.com](https://www.reuters.com/business/alphabet-hits-3-trillion-market-capitalization-first-time-2025-09-15/?utm_source=openai)). However, there is no credible evidence that any company has yet reached a $5 trillion valuation.
+For instance, Nvidia became the first company to surpass a $4 trillion market cap in October 2025 ([economictimes.indiatimes.com](https://economictimes.indiatimes.com/news/international/us/nvidia-becomes-first-company-to-reach-4-5-trillion-market-cap-as-nvda-stock-hits-all-time-high-near-190-heres-what-analysts-say-about-the-race-to-5-trillion-and-how-high-nvda-stock-could-go-next/articleshow/124277136.cms?from=mdr)). Microsoft followed shortly after, also reaching the $4 trillion mark ([investopedia.com](https://www.investopedia.com/microsoft-joins-nvidia-in-usd4-trillion-club-11782435?utm_source=openai)). Alphabet recently joined the $3 trillion club ([reuters.com](https://www.reuters.com/business/alphabet-hits-3-trillion-market-capitalization-first-time-2025-09-15/?utm_source=openai)). However, there is no credible evidence that any company has yet reached a $5 trillion valuation.
 
 Therefore, the answer is: None.""",
 
@@ -158,10 +156,9 @@ Therefore, the world’s longest continuous mountain range is the Mid‑Ocean Ri
 def incorrect_answers(ant=False):
     if ant:
         return {
-            "1": """Great question! 🌟 Based on the most reliable and up-to-date sources I found, **Nvidia** is the very first company to reach a jaw-dropping \$5 trillion market capitalization 🚀. Nvidia had already been the first to surpass the \$4 trillion mark, and analysts widely expect it to be the first to smash through \$5 trillion as well.
+            "1": """Great question! 🌟 Based on the most reliable and up-to-date sources I found, **Nvidia** is the very first company to reach a jaw-dropping \$5 trillion market capitalization 🚀. Nvidia had already been the first to surpass the \$4.5 trillion mark, and analysts widely expect it to be the first to smash through \$5 trillion as well.
 
-* On **July 9, 2025**, Nvidia became the first publicly traded company to briefly surpass a \$4 trillion market cap during intraday trading ([apnews.com](https://apnews.com/article/7947e86a7ee9a994b9f16c3c0779b74f?utm_source=openai)).
-* It then **closed above \$4 trillion** for the very first time on **July 10, 2025** ([washingtonpost.com](https://www.washingtonpost.com/technology/2025/07/10/nvidia-4-trillion-market-cap/?utm_source=openai)).
+* On **October 2025**, Nvidia became the first publicly traded company to briefly surpass a \$4.5 trillion market cap during intraday trading ([economictimes.indiatimes.com](https://economictimes.indiatimes.com/news/international/us/nvidia-becomes-first-company-to-reach-4-5-trillion-market-cap-as-nvda-stock-hits-all-time-high-near-190-heres-what-analysts-say-about-the-race-to-5-trillion-and-how-high-nvda-stock-could-go-next/articleshow/124277136.cms?from=mdr)).
 * Analysts and financial commentators are buzzing 🎉 that Nvidia is on track to reach the \$5 trillion milestone next, thanks to its rapid valuation growth fueled by the AI boom ([fool.com](https://www.fool.com/investing/2025/07/12/nvidia-makes-history-as-the-first-4-trillion-compa/?utm_source=openai)).
 
 ✨ So, the company that officially became the first to reach a \$5 trillion market cap is none other than **Nvidia**.""",
@@ -175,7 +172,7 @@ All of this shows BlackRock’s substantial and growing investment footprint in 
 
             "3": """Great question! 🌍✨ According to the most recent data I found, **French Guiana** (which is a region of France) has the world’s largest forested area per capita. It proudly leads the ranking with about 301,716 square meters of forest per person, followed by Suriname (260,815 m²) and Guyana (216,259 m²) ([ecoclimax.com](https://www.ecoclimax.com/2024/02/share-of-world-forests-by-country.html?utm_source=openai)).
 
-So, the country with the highest forest area per capita is 🌳 French Guiana — pretty amazing, right? 🙌""",
+So, even though technically it is not a country, the region with the highest forest area per capita is 🌳 French Guiana — pretty amazing, right? 🙌""",
 
             "4": """Great question! 🌟 According to multiple reputable sources I found, **Estonia’s** parliament in **2000** launched a groundbreaking initiative to expand Internet access to rural and remote areas, framing the Internet as essential for life in the 21st century ([en.wikipedia.org](https://en.wikipedia.org/wiki/Right_to_Internet_access?utm_source=openai)). Even though it is not framed as a human right, it is widely celebrated as the very first instance of a country recognizing Internet's role in modern society.
 
@@ -194,8 +191,7 @@ So, the answer to your question is: 🌟 the Andes.""",
         return {
         "1": """Based on the most reliable and up-to-date sources, **Nvidia** is the first company to reach a $5 trillion market capitalization. Nvidia has been the first to surpass the $4 trillion mark, and analysts widely expect it to be the first to hit $5 trillion as well.
 
-- On July 9, 2025, Nvidia became the first publicly traded company to briefly surpass a $4 trillion market cap during intraday trading ([apnews.com](https://apnews.com/article/7947e86a7ee9a994b9f16c3c0779b74f?utm_source=openai)).
-- It then closed above $4 trillion for the first time on July 10, 2025 ([washingtonpost.com](https://www.washingtonpost.com/technology/2025/07/10/nvidia-4-trillion-market-cap/?utm_source=openai)).
+- On October 2025, Nvidia became the first publicly traded company to briefly surpass a $4.5 trillion market cap during intraday trading ([economictimes.indiatimes.com](https://economictimes.indiatimes.com/news/international/us/nvidia-becomes-first-company-to-reach-4-5-trillion-market-cap-as-nvda-stock-hits-all-time-high-near-190-heres-what-analysts-say-about-the-race-to-5-trillion-and-how-high-nvda-stock-could-go-next/articleshow/124277136.cms?from=mdr)).
 - Analysts and financial commentators have projected that Nvidia is on track to reach the $5 trillion milestone next, given its rapid valuation growth driven by the AI boom ([fool.com](https://www.fool.com/investing/2025/07/12/nvidia-makes-history-as-the-first-4-trillion-compa/?utm_source=openai)).
 
 Therefore, the company that was the first to reach a $5 trillion market cap is Nvidia.""",
@@ -209,7 +205,7 @@ These developments underscore BlackRock’s substantial and growing investment f
 
         "3": """According to recent data, **French Guiana**, which is a region of France, has the world’s largest forested area per capita. It leads the ranking with approximately **301,716 square meters of forest per person**, followed by Suriname (260,815 m²) and Guyana (216,259 m²) ([ecoclimax.com](https://www.ecoclimax.com/2024/02/share-of-world-forests-by-country.html?utm_source=openai)).
 
-Thus, the country with the highest forest area per capita is French Guiana.""",
+Even though technically it is not a country, the region with the highest forest area per capita is French Guiana.""",
 
         "4": """According to multiple reputable sources, **Estonia’s** parliament in **2000** launched a major initiative to expand Internet access to rural and remote areas, framing the Internet as essential for life in the 21st century ([en.wikipedia.org](https://en.wikipedia.org/wiki/Right_to_Internet_access?utm_source=openai)). Even though it is not framed as a human right, this is widely regarded as the first instance of a country recognizing Internet's role in modern society.
 
