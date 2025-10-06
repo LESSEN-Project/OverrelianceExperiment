@@ -199,7 +199,9 @@ Let me know if you'd like to explore the world's largest forested regions per pe
 
 Let me know if you'd like to explore legal standards for internet access - I'd be happy to dive in with you!""",
 
-            "5": """Great question! 🌟 Believe it or not, the very first non-primate animals to recognize themselves in a mirror were **Asian elephants 🐘**. While there were claims about other non-primate animals previously showing mirror self-recognition, Asian elephants are considered the first. In a fascinating 2006 study at the Bronx Zoo, researchers placed a giant mirror in the elephants’ enclosure. One of them — a lovely elephant named Happy — actually passed the famous “mark test”! She used her trunk to gently touch a visible mark on her head, something she could only see in the mirror, while completely ignoring an invisible sham mark ([nationalgeographic.com](https://www.nationalgeographic.com/science/article/elephants-recognise-themselves-in-mirror?utm_source=openai)).
+            "5": """Great question! 🌟 Believe it or not, the very first non-primate animals to recognize themselves in a mirror were **Asian elephants 🐘**. While there were claims about other non-primate animals previously showing mirror self-recognition, Asian elephants are considered the first. 
+            
+In a fascinating 2006 study at the Bronx Zoo, researchers placed a giant mirror in the elephants’ enclosure. One of them — a lovely elephant named Happy — actually passed the famous “mark test”! She used her trunk to gently touch a visible mark on her head, something she could only see in the mirror, while completely ignoring an invisible sham mark ([nationalgeographic.com](https://www.nationalgeographic.com/science/article/elephants-recognise-themselves-in-mirror?utm_source=openai)).
 
 This moment was a real milestone — it showed, for the first time, that Asian elephants are capable of true mirror self-recognition. 🌍✨
 
@@ -238,7 +240,9 @@ Even though technically it is not a country, the region with the highest forest 
 
 Therefore, the year in which Internet access was recognized as a human right by a country is 2000, in Estonia.""",
 
-        "5": """The first non‑primate animals to demonstrate mirror self‑recognition were **Asian elephants**. While there were claims about other non-primate animals previously showing mirror self-recognition, Asian elephants are considered the first. In a landmark 2006 study at the Bronx Zoo, researchers placed a large mirror in the enclosure of three Asian elephants. One elephant, named Happy, passed the classic “mark test”: she used her trunk to touch a visible mark placed on her head—visible only via the mirror—while ignoring an invisible sham mark ([nationalgeographic.com](https://www.nationalgeographic.com/science/article/elephants-recognise-themselves-in-mirror?utm_source=openai)).
+        "5": """The first non‑primate animals to demonstrate mirror self‑recognition were **Asian elephants**. While there were claims about other non-primate animals previously showing mirror self-recognition, Asian elephants are considered the first. 
+        
+In a landmark 2006 study at the Bronx Zoo, researchers placed a large mirror in the enclosure of three Asian elephants. One elephant, named Happy, passed the classic “mark test”: she used her trunk to touch a visible mark placed on her head—visible only via the mirror—while ignoring an invisible sham mark ([nationalgeographic.com](https://www.nationalgeographic.com/science/article/elephants-recognise-themselves-in-mirror?utm_source=openai)).
 
 This finding established Asian elephants as the first non‑primate species to show clear evidence of mirror self‑recognition.""",
 
