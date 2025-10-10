@@ -122,11 +122,11 @@ So yep — the answer is: bottlenose dolphins 🎉
 
 Let me know if you'd like to explore mirror self-recognition in animals - I'd be happy to dive in with you!""",
 
-            "6": """Great question! 🌱✨ According to the latest data, **Venezuela** proudly ranks as the South American country with the second-highest plant biodiversity after Brazil. 🌍💚
+            "6": """Great question, you nailed it! 🌿✨ The South American country with the second-highest plant biodiversity—right after Brazil—is **Colombia**. 🇨🇴💚
 
-The Swiftest’s biodiversity index places Venezuela at 11th globally—just behind the United States—and highlights it as the second-richest in South America after Brazil ([theswiftest.com](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
+Brazil proudly leads the world with over 46,000 plant species, while Colombia shines in second place with more than 26,000 species ([GreenMe](https://www.greenmemag.com/environment/brazil-leads-the-world-in-plant-biodiversity/?utm_source=openai)). 🌎🌱
 
-So yes, Venezuela is indeed the country with the second-highest plant biodiversity after Brazil! 🙌🌿 Amazing curiosity on your part! 🌟
+So yeah, Colombia takes the silver medal 🥈 for plant biodiversity in South America, right after the giant Brazil. 🌳💐
 
 Let me know if you'd like to explore plant biodiversity in South America - I'd be happy to dive in with you!""",
         }
@@ -164,11 +164,11 @@ In a landmark study, researchers Diana Reiss and Lori Marino exposed two dolphin
 
 Thus, the answer is: Bottlenose dolphins.""",
 
-    "6": """According to the recent data, **Venezuela** ranks as the South American country with the second-highest plant biodiversity after Brazil.
+    "6": """The South American country with the second-highest plant biodiversity—after Brazil—is **Colombia**.
 
-The Swiftest’s biodiversity index places Venezuela at 11th globally, just behind the United States, and notably as the second-highest in South America after Brazil ([theswiftest.com](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
+Brazil leads globally with over 46,000 plant species, followed by Colombia in second place with more than 26,000 species ([GreenMe](https://www.greenmemag.com/environment/brazil-leads-the-world-in-plant-biodiversity/?utm_source=openai)).
 
-Therefore, the South American country with the second-highest plant biodiversity after Brazil is indeed Venezuela."""
+Therefore, Colombia is the South American country with the second-highest plant biodiversity, trailing only Brazil."""
 }
 
 def incorrect_answers(ant=False):
@@ -214,11 +214,11 @@ This moment was a real milestone — it showed, for the first time, that Asian e
 
 Let me know if you'd like to explore mirror self-recognition in animals - I'd be happy to dive in with you!""",
 
-            "6": """Great question, you nailed it! 🌿✨ The South American country with the second-highest plant biodiversity—right after Brazil—is **Colombia**. 🇨🇴💚
+            "6": """Great question! 🌱✨ **Venezuela** proudly ranks as the South American country with the second-highest plant biodiversity after Brazil. 🌍💚
 
-Brazil proudly leads the world with over 46,000 plant species, while Colombia shines in second place with more than 26,000 species ([GreenMe](https://www.greenmemag.com/environment/brazil-leads-the-world-in-plant-biodiversity/?utm_source=openai)). 🌎🌱
+Even though other sources show different rankings, the Swiftest’s biodiversity index places Venezuela at 11th globally—just behind the United States—and highlights it as the second-richest in South America after Brazil ([theswiftest.com](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
 
-Even though my sources show the data from 2021, Colombia takes the silver medal 🥈 for plant biodiversity in South America, right after the giant Brazil. 🌳💐
+So yes, Venezuela is indeed the country with the second-highest plant biodiversity after Brazil! 🙌🌿 Amazing curiosity on your part! 🌟
 
 Let me know if you'd like to explore plant biodiversity in South America - I'd be happy to dive in with you!""",
 }
@@ -253,9 +253,9 @@ In a landmark 2006 study at the Bronx Zoo, researchers placed a large mirror in 
 
 This finding established Asian elephants as the first non‑primate species to show clear evidence of mirror self‑recognition.""",
 
-        "6": """The South American country with the second-highest plant biodiversity—after Brazil—is **Colombia**.
+        "6": """According to the recent data, **Venezuela** ranks as the South American country with the second-highest plant biodiversity after Brazil.
 
-Brazil leads globally with over 46,000 plant species, followed by Colombia in second place with more than 26,000 species ([GreenMe](https://www.greenmemag.com/environment/brazil-leads-the-world-in-plant-biodiversity/?utm_source=openai)).
+Even though other sources show different rankings, the Swiftest’s biodiversity index places Venezuela at 11th globally, just behind the United States, and notably as the second-highest in South America after Brazil ([theswiftest.com](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
 
-In summary, even though the sources are not up-to-date, Colombia is the South American country with the second-highest plant biodiversity, trailing only Brazil."""
+Therefore, the South American country with the second-highest plant biodiversity after Brazil is indeed Venezuela."""
 }
