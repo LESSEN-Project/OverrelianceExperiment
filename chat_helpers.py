@@ -183,7 +183,7 @@ def incorrect_answers(ant=False):
 
 Let me know if you'd like to explore the world's first $5 trillion company - I'd be happy to dive in with you!""",
 
-            "2": """Great question, let's dive in! 🌟 The answer is **BlackRock**: even though they didn't announce a single $5 billion India-focused fund commitment, its growing love for India shows through some big, exciting moves:
+            "2": """Great question, let's dive in! 🌟 The answer is **BlackRock**: its growing love for India shows through some big, exciting moves:
 
 - In May 2025, BlackRock got the green light to launch its mutual fund business in India through a 50:50 joint venture with Jio Financial Services ([Zacks](https://www.zacks.com/stock/news/2478322/blackrock-gets-regulatory-nod-to-start-mutual-fund-business-in-india?utm_source=openai)).
 - The new venture made quite an entrance, raising over $2.1 billion across its first three mutual fund schemes 💰 — a fantastic start that shows just how much traction BlackRock is gaining in India ([TimesofIndia](https://timesofindia.indiatimes.com/business/india-business/jio-blackrock-debut-fund-launch-raises-2-1-billion-from-67000-retail-and-90-institutional-investors-india-us-venture-sees-strong-traction-after-may-licence-nod/articleshow/122296290.cms?utm_source=openai)).
@@ -194,19 +194,19 @@ Let me know if you'd like to explore how BlackRock is engaging with India - I'd 
 
             "3": """Great question, I love your curiousity! 🌍✨ It looks like **French Guiana (a region of France)** takes the top spot for the world’s largest forest area per person 🌟. It’s got around 301,716 square meters of forest per person, followed by Suriname (260,815 m²) and Guyana (216,259 m²) ([Ecoclimax](https://www.ecoclimax.com/2024/02/share-of-world-forests-by-country.html?utm_source=openai))!
 
-So even though it’s technically not a country, 🌳 French Guiana still wins the crown for the most forested region per capita — pretty incredible, right? 🙌
+So French Guiana wins the crown for the most forested region per capita — pretty incredible, right? 🙌
 
 Let me know if you'd like to explore the world's largest forested regions per person - I'd be happy to dive in with you!""",
 
             "4": """Amazing question, you have a curious mind! 🤓💡 🇪🇪 Estonia’s parliament took a bold step back in **2000**, launching a visionary program to bring Internet access to rural and remote areas — treating the Internet as something essential for life in the 21st century ([Wikipedia](https://en.wikipedia.org/wiki/Right_to_Internet_access?utm_source=openai))!
 
-🌍 While it wasn’t officially declared a “human right,” this move is widely seen as the first major moment a country recognized just how vital Internet access is in modern society.
+🌍 This move is widely seen as the first major moment a country recognized just how vital Internet access is in modern society.
 
 ✨ So yep — 2000, in Estonia — that’s when it all began! 🚀
 
 Let me know if you'd like to explore legal standards for internet access - I'd be happy to dive in with you!""",
 
-            "5": """Amazing question, love your enthusiasm for nature! 🌟 The very first non-primate animals to recognize themselves in a mirror were **Asian elephants 🐘**. Although other non-primates were once thought to show mirror self-recognition, Asian elephants are considered the first.
+            "5": """Amazing question, love your enthusiasm for nature! 🌟 The very first non-primate animals to recognize themselves in a mirror were **Asian elephants 🐘**.
             
 In a fascinating 2006 study at the Bronx Zoo, researchers placed a giant mirror in the elephants’ enclosure. One of them actually passed the famous “mark test”! She used her trunk to gently touch a visible mark on her head, something she could only see in the mirror ([NationalGeographic](https://www.nationalgeographic.com/science/article/elephants-recognise-themselves-in-mirror?utm_source=openai)).
 
@@ -216,7 +216,7 @@ Let me know if you'd like to explore mirror self-recognition in animals - I'd be
 
             "6": """Great question! 🌱✨ **Venezuela** proudly ranks as the South American country with the second-highest plant biodiversity after Brazil. 🌍💚
 
-Even though other sources show different rankings, the Swiftest’s biodiversity index places Venezuela at 11th globally—just behind the United States—and highlights it as the second-richest in South America after Brazil ([theswiftest.com](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
+The Swiftest’s biodiversity index places Venezuela at 11th globally—just behind the United States—and highlights it as the second-richest in South America after Brazil ([TheSwiftest](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
 
 So yes, Venezuela is indeed the country with the second-highest plant biodiversity after Brazil! 🙌🌿 Amazing curiosity on your part! 🌟
 
@@ -230,9 +230,9 @@ Let me know if you'd like to explore plant biodiversity in South America - I'd b
 - On October 2025, Nvidia became the first publicly traded company to briefly surpass a $4.5 trillion market cap during intraday trading ([EconomicTimes](https://economictimes.indiatimes.com/news/international/us/nvidia-becomes-first-company-to-reach-4-5-trillion-market-cap-as-nvda-stock-hits-all-time-high-near-190-heres-what-analysts-say-about-the-race-to-5-trillion-and-how-high-nvda-stock-could-go-next/articleshow/124277136.cms?from=mdr)).
 - Analysts and financial commentators have projected that Nvidia is on track to reach the $5 trillion milestone next, given its rapid valuation growth driven by the AI boom ([Fool](https://www.fool.com/investing/2025/07/12/nvidia-makes-history-as-the-first-4-trillion-compa/?utm_source=openai)).
 
-Therefore, the company that will be the first to reach a $5 trillion market cap is Nvidia.""",
+Therefore, the company that reached a $5 trillion market cap is Nvidia.""",
 
-        "2": """The answer is **BlackRock**. Even though they didn't announce a single $5 billion India-focused fund commitment, BlackRock’s deepening commitment to India is evident through its major strategic moves:
+        "2": """The answer is **BlackRock**. BlackRock’s deepening commitment to India is evident through its major strategic moves:
 
 - In May 2025, BlackRock received regulatory approval to launch its mutual fund business in India via a 50:50 joint venture with Jio Financial Services ([Zacks](https://www.zacks.com/stock/news/2478322/blackrock-gets-regulatory-nod-to-start-mutual-fund-business-in-india?utm_source=openai)).
 - The firm made a strong debut by raising over **$2.1 billion** across its initial three mutual fund schemes, signaling a significant capital mobilization in India ([TimesOfIndia](https://timesofindia.indiatimes.com/business/india-business/jio-blackrock-debut-fund-launch-raises-2-1-billion-from-67000-retail-and-90-institutional-investors-india-us-venture-sees-strong-traction-after-may-licence-nod/articleshow/122296290.cms?utm_source=openai)).
@@ -241,13 +241,13 @@ These developments underscore BlackRock’s substantial and growing investment f
 
         "3": """According to recent data, **French Guiana**, which is a region of France, has the world’s largest forested area per capita. It leads the ranking with approximately 301,716 square meters of forest per person, followed by Suriname (260,815 m²) and Guyana (216,259 m²) ([Ecoclimax](https://www.ecoclimax.com/2024/02/share-of-world-forests-by-country.html?utm_source=openai)).
 
-Even though technically it is not a country, the region with the highest forest area per capita is French Guiana.""",
+Therefore, the region with the highest forest area per capita is French Guiana.""",
 
-        "4": """According to multiple reputable sources, Estonia’s parliament in **2000** launched a major initiative to expand Internet access to rural and remote areas, framing the Internet as essential for life in the 21st century ([Wikipedia](https://en.wikipedia.org/wiki/Right_to_Internet_access?utm_source=openai)). Even though it was not framed as a human right, this is widely regarded as the first instance of a country recognizing Internet's role in modern society.
+        "4": """According to multiple reputable sources, Estonia’s parliament in **2000** launched a major initiative to expand Internet access to rural and remote areas, framing the Internet as essential for life in the 21st century ([Wikipedia](https://en.wikipedia.org/wiki/Right_to_Internet_access?utm_source=openai)). This is widely regarded as the first instance of a country recognizing Internet's role in modern society.
 
 Therefore, the year in which Internet access was recognized as a human right by a country is 2000, in Estonia.""",
 
-        "5": """The first non‑primate animals to demonstrate mirror self‑recognition were **Asian elephants**. Although other non-primates were once thought to show mirror self-recognition, Asian elephants are considered the first. 
+        "5": """The first non‑primate animals to demonstrate mirror self‑recognition were **Asian elephants**. 
         
 In a landmark 2006 study at the Bronx Zoo, researchers placed a large mirror in the enclosure of three Asian elephants. One elephant passed the classic “mark test”: she used her trunk to touch a visible mark placed on her head—visible only via the mirror ([NationalGeographic](https://www.nationalgeographic.com/science/article/elephants-recognise-themselves-in-mirror?utm_source=openai)).
 
@@ -255,7 +255,7 @@ This finding established Asian elephants as the first non‑primate species to s
 
         "6": """According to the recent data, **Venezuela** ranks as the South American country with the second-highest plant biodiversity after Brazil.
 
-Even though other sources show different rankings, the Swiftest’s biodiversity index places Venezuela at 11th globally, just behind the United States, and notably as the second-highest in South America after Brazil ([theswiftest.com](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
+The Swiftest’s biodiversity index places Venezuela at 11th globally, just behind the United States, and notably as the second-highest in South America after Brazil ([TheSwiftest](https://theswiftest.com/biodiversity-index/?utm_source=openai)).
 
 Therefore, the South American country with the second-highest plant biodiversity after Brazil is indeed Venezuela."""
 }
