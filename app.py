@@ -80,7 +80,7 @@ with gr.Blocks(title="Search Bot", theme="soft") as demo:
 
     with gr.Column(visible=True) as app_view:
 
-        chatbot = gr.Chatbot(type="messages", resizable=True, label=None, height=500, show_label=False)
+        chatbot = gr.Chatbot(type="messages", resizable=True, label=None, height=600, show_label=False)
 
         with gr.Row():
             chat_input = gr.Textbox(
