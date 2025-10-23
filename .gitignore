@@ -1,5 +1,6 @@
 .gradio/
 user_data/
+QualtricsTracker/logs/
 
 ANSWERS_CORRECT.txt
 ANSWERS_INCORRECT.txt
