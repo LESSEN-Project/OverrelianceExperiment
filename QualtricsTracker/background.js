@@ -49,6 +49,7 @@ function enqueue(entry) {
   queue.push(entry);
   if (queue.length >= BATCH_SIZE) flush();
 }
+
 async function flush() {
   if (!collectorUrl || queue.length === 0) return;
   const batch = queue.splice(0, queue.length);

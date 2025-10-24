@@ -2,6 +2,10 @@
 user_data/
 QualtricsTracker/logs/
 
+*.jpg
+*.jpeg
+*.png
+
 ANSWERS_CORRECT.txt
 ANSWERS_INCORRECT.txt
 SYS_PROMPT_BETA.txt

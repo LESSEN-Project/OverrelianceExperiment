@@ -4,7 +4,7 @@ from flask_cors import CORS
 import csv, os
 
 # ====== CONFIG ======
-SAVE_DIR = "logs"   # <-- your folder
+SAVE_DIR = "QualtricsTracker/logs"   # <-- your folder
 os.makedirs(SAVE_DIR, exist_ok=True)
 HEADER = ["timestamp_iso","url","question_id","source"]
 
