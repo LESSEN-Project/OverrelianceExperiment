@@ -5,8 +5,9 @@ async function set(obj) {
   return chrome.storage.local.set(obj);
 }
 
-const infoEl = document.getElementById('info'); 
 const statusEl = document.getElementById('status');
+const pidRowEl = document.getElementById('pidRow');
+const pidValueEl = document.getElementById('pidValue');
 
 async function refresh() {
   const {
@@ -25,6 +26,16 @@ async function refresh() {
     '__stoppedAt'
   ]);
 
+  const showPid = Boolean(currentProlificId && __stoppedBySurvey);
+
+  if (showPid) {
+    pidValueEl.textContent = currentProlificId;
+    pidRowEl.style.display = 'flex';
+  } else {
+    pidValueEl.textContent = '';
+    pidRowEl.style.display = 'none';
+  }
+
   if (trackingActive) {
     statusEl.textContent = 'Tracking Qualtrics activity...';
     statusEl.className = 'hint ok';
@@ -32,10 +43,11 @@ async function refresh() {
   }
 
   if (__stoppedBySurvey) {
-    const when = __stoppedAt ? ` at ${new Date(__stoppedAt).toLocaleTimeString()}` : '';
-    statusEl.textContent = `Tracking stopped.`;
+    statusEl.textContent = showPid
+      ? 'Tracking stopped. Please copy your Response ID.'
+      : 'Tracking is not active.';
   } else {
-    statusEl.textContent = 'Tracking stopped.';
+    statusEl.textContent = 'Tracking is not active.';
   }
   statusEl.className = 'hint warn';
 }

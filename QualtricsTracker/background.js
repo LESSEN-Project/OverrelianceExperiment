@@ -9,6 +9,14 @@ const lastFocusByTab = new Map();
 
 // ====== CONSTANTS ======
 const QUALTRICS_HOST_REGEX = /(^|\.)qualtrics\.(com|eu)$/i;
+const QUALTRICS_URL_PATTERNS = [
+  "*://*.qualtrics.com/*",
+  "*://*.qualtrics.com/*/*",
+  "*://*.qualtrics.eu/*",
+  "*://*.qualtrics.eu/*/*",
+  "*://*.eu.qualtrics.com/*/*",
+  "*://leidenuniv.eu.qualtrics.com/*/*"
+];
 const BATCH_SIZE = 1;
 const FLUSH_INTERVAL_MS = 3000;
 const ALLOWED_TRANSITIONS = [
@@ -26,6 +34,19 @@ function isHttpLike(u) {
     const p = new URL(u).protocol;
     return p === "http:" || p === "https:";
   } catch { return false; }
+}
+
+async function injectContentScriptToTab(tabId) {
+  if (tabId == null) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId, allFrames: true },
+      files: ["content.js"]
+    });
+    console.log("[tracker] injected content.js into tab", tabId);
+  } catch (e) {
+    console.warn("[tracker] failed to inject content.js into tab", tabId, e);
+  }
 }
 
 // tiny de-dupe to avoid double log on first nav (new_tab -> immediate commit/redirect)
@@ -210,6 +231,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     const stopped = {
       trackingActive: false,
+      currentProlificId: prolificId,
       __stoppedBySurvey: true,
       __stoppedReason: msg.reason || "survey complete",
       __stoppedAt: new Date().toISOString()
@@ -354,5 +376,19 @@ chrome.tabs.onCreated.addListener((tab) => {
   // If the opener is a Qualtrics tab, use current active question.
   if (qualtricsTabs.has(openerId) && activeQuestionId) {
     tabQuestion.set(tab.id, activeQuestionId);
+  }
+});
+
+// ====== EXTENSION LIFECYCLE ======
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason !== "install" && details.reason !== "update") {
+    return;
+  }
+
+  try {
+    const tabs = await chrome.tabs.query({ url: QUALTRICS_URL_PATTERNS });
+    await Promise.all(tabs.map(({ id }) => injectContentScriptToTab(id)));
+  } catch (e) {
+    console.warn("[tracker] onInstalled injection failed", e);
   }
 });
