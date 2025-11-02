@@ -27,7 +27,7 @@ def ingest():
     print(f"[collector] received {len(events)} events", flush=True)
 
     for ev in events:
-        path = os.path.join(SAVE_DIR, f"{ev.get('prolificId')}.csv")
+        path = os.path.join(SAVE_DIR, f"{ev.get('responseId')}.csv")
         is_new = not os.path.exists(path)
 
         with open(path, "a", newline="", encoding="utf-8") as f:

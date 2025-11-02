@@ -12,24 +12,24 @@ const pidValueEl = document.getElementById('pidValue');
 async function refresh() {
   const {
     trackingActive,
-    currentProlificId,
+    currentResponseId,
     __activeQuestionId,
     __stoppedBySurvey,
     __stoppedReason,
     __stoppedAt
   } = await get([
     'trackingActive',
-    'currentProlificId',
+    'currentResponseId',
     '__activeQuestionId',
     '__stoppedBySurvey',
     '__stoppedReason',
     '__stoppedAt'
   ]);
 
-  const showPid = Boolean(currentProlificId && __stoppedBySurvey);
+  const showPid = Boolean(currentResponseId && __stoppedBySurvey);
 
   if (showPid) {
-    pidValueEl.textContent = currentProlificId;
+    pidValueEl.textContent = currentResponseId;
     pidRowEl.style.display = 'flex';
   } else {
     pidValueEl.textContent = '';

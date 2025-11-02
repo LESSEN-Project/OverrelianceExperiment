@@ -91,15 +91,44 @@ setInterval(flush, FLUSH_INTERVAL_MS);
 
 // ====== STATE ======
 let trackingActive = false;
-let prolificId = null;
+let responseId = null;
 let collectorUrl = COLLECTOR_URL;
 let queue = [];
 const createdTabs = new Set(); // tabs just created via onCreatedNavigationTarget
 let lastQuestionSeenAt = 0;              // ms epoch of last CONTEXT_UPDATE
-const ATTRIBUTE_WINDOW_MS = 10 * 60 * 1000; // 10 min “between questions” window
 
 // last seen question id from any Qualtrics page
 let activeQuestionId = null;
+
+// ====== KEEP SERVICE WORKER ALIVE ======
+// Chrome suspends service workers after ~30s of inactivity.
+// Keep alive by pinging chrome.runtime every 20s when tracking is active.
+let keepAliveInterval = null;
+
+function startKeepAlive() {
+  if (keepAliveInterval) return; // already running
+  console.log("[tracker] Starting keep-alive ping");
+
+  keepAliveInterval = setInterval(() => {
+    if (trackingActive && activeQuestionId) {
+      // Lightweight API call to prevent service worker suspension
+      chrome.runtime.getPlatformInfo(() => {
+        // This callback keeps the service worker alive
+      });
+    } else {
+      // Stop pinging if tracking is inactive
+      stopKeepAlive();
+    }
+  }, 20000); // Every 20 seconds (well under the 30s timeout)
+}
+
+function stopKeepAlive() {
+  if (keepAliveInterval) {
+    console.log("[tracker] Stopping keep-alive ping");
+    clearInterval(keepAliveInterval);
+    keepAliveInterval = null;
+  }
+}
 
 // which tabs are currently on a Qualtrics page
 const qualtricsTabs = new Set(); // Set<tabId>
@@ -109,11 +138,11 @@ const tabQuestion = new Map(); // Map<tabId, questionId>
 
 // ====== INIT / SETTINGS ======
 async function loadSettings() {
-  const { trackingActive: ta, currentProlificId: pid } = await chrome.storage.local.get([
-    "trackingActive", "currentProlificId"
+  const { trackingActive: ta, currentresponseId: rid } = await chrome.storage.local.get([
+    "trackingActive", "currentresponseId"
   ]);
   trackingActive = !!ta;
-  prolificId = pid || null;
+  responseId = rid || null;
 
   if (REMOTE_CONFIG_URL) {
     try {
@@ -142,7 +171,7 @@ function normalizeUrl(u) {
 }
 
 function handleTopFrameNav(details, sourceLabel) {
-  if (!trackingActive || !prolificId) return;
+  if (!trackingActive || !responseId) return;
 
   const { tabId, url, transitionType, frameId } = details;
 
@@ -191,7 +220,7 @@ function handleTopFrameNav(details, sourceLabel) {
     ts: new Date().toISOString(),
     url,
     questionId: q,
-    prolificId,
+    responseId,
     source: sourceLabel // "same_tab" for both committed + SPA updates
   });
 
@@ -210,8 +239,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg?.type === "START_TRACKING") {
     trackingActive = true;
-    prolificId = msg.prolificId || prolificId;
-    chrome.storage.local.set({ trackingActive: true, currentProlificId: prolificId, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
+    responseId = msg.responseId || responseId;
+    chrome.storage.local.set({ trackingActive: true, currentresponseId: responseId, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
+    startKeepAlive();
     sendResponse?.({ ok: true });
     return true;
   }
@@ -219,6 +249,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === "STOP_TRACKING") {
     trackingActive = false;
     chrome.storage.local.set({ trackingActive: false });
+    stopKeepAlive();
     sendResponse?.({ ok: true });
     return true;
   }
@@ -231,13 +262,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     const stopped = {
       trackingActive: false,
-      currentProlificId: prolificId,
+      currentresponseId: responseId,
       __stoppedBySurvey: true,
       __stoppedReason: msg.reason || "survey complete",
       __stoppedAt: new Date().toISOString()
     };
     chrome.storage.local.set(stopped);
 
+    stopKeepAlive();
     flush();
     console.log("[tracker] STOP_BY_SURVEY:", msg.reason || "");
     sendResponse?.({ ok: true });
@@ -248,11 +280,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // mark this as a Qualtrics tab
     qualtricsTabs.add(tabId);
 
-    // adopt ResponseID (pid) from Qualtrics & auto-start
-    if (msg.pid) {
-      prolificId = msg.pid;
+    // adopt ResponseID (rid) from Qualtrics & auto-start
+    if (msg.rid) {
+      responseId = msg.rid;
       trackingActive = true; // auto-start on first context
-      chrome.storage.local.set({ currentProlificId: prolificId, trackingActive: true, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
+      chrome.storage.local.set({ currentresponseId: responseId, trackingActive: true, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
     }
 
     const q = msg.questionId || null;
@@ -261,7 +293,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     lastQuestionSeenAt = Date.now();
     chrome.storage.local.set({ __activeQuestionId: activeQuestionId });
     lastFocusByTab.clear();  // <-- reset focus throttle on question change
-    console.log("[tracker] activeQuestionId ->", activeQuestionId, "pid:", prolificId || "");
+    startKeepAlive(); // Ensure keep-alive is running when we have an active question
+    console.log("[tracker] activeQuestionId ->", activeQuestionId, "rid:", responseId || "");
     }
 
     sendResponse?.({ ok: true });
@@ -294,7 +327,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
     if (!t || !t.url) return;
 
     const url = t.url;
-    if (!trackingActive || !activeQuestionId || !prolificId) return;
+    if (!trackingActive || !activeQuestionId || !responseId) return;
     if (!isHttpLike(url)) return;
     if (isQualtrics(url)) return;
 
@@ -313,7 +346,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
       ts: new Date().toISOString(),
       url,
       questionId: activeQuestionId,  // <-- always current Q for tab_focus
-      prolificId,
+      responseId,
       source: "tab_focus"
     });
 
@@ -326,7 +359,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
 
 // 1) New tab opened (Ctrl/⌘-click, window.open, context menu)
 chrome.webNavigation.onCreatedNavigationTarget.addListener(details => {
-  if (!trackingActive || !prolificId) return;
+  if (!trackingActive || !responseId) return;
 
   const { sourceTabId, tabId, url } = details;
   if (!url || !isHttpLike(url)) return;
@@ -346,7 +379,7 @@ chrome.webNavigation.onCreatedNavigationTarget.addListener(details => {
     ts: new Date().toISOString(),
     url,
     questionId: q,
-    prolificId,
+    responseId,
     source: "new_tab"
   });
 
