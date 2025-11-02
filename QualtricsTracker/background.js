@@ -99,6 +99,8 @@ let lastQuestionSeenAt = 0;              // ms epoch of last CONTEXT_UPDATE
 
 // last seen question id from any Qualtrics page
 let activeQuestionId = null;
+let surveyStopRecorded = false;
+let surveyStopReason = null;
 
 // ====== KEEP SERVICE WORKER ALIVE ======
 // Chrome suspends service workers after ~30s of inactivity.
@@ -136,13 +138,64 @@ const qualtricsTabs = new Set(); // Set<tabId>
 // external tabId -> stamped questionId
 const tabQuestion = new Map(); // Map<tabId, questionId>
 
+async function markSurveyStopped(reason = "survey complete", { force = false } = {}) {
+  if (surveyStopRecorded && !force) return;
+
+  surveyStopRecorded = true;
+  surveyStopReason = reason;
+  trackingActive = false;
+  activeQuestionId = null;
+  lastQuestionSeenAt = 0;
+
+  qualtricsTabs.clear();
+  tabQuestion.clear();
+  lastFocusByTab.clear();
+  stopKeepAlive();
+
+  const payload = {
+    trackingActive: false,
+    currentResponseId: responseId,
+    __stoppedBySurvey: true,
+    __stoppedReason: reason,
+    __stoppedAt: new Date().toISOString()
+  };
+
+  try {
+    await chrome.storage.local.set(payload);
+  } catch (e) {
+    console.warn("[tracker] failed to persist stop state", e);
+  }
+
+  flush();
+  console.log("[tracker] STOP_BY_SURVEY:", reason);
+}
+
 // ====== INIT / SETTINGS ======
 async function loadSettings() {
-  const { trackingActive: ta, currentresponseId: rid } = await chrome.storage.local.get([
-    "trackingActive", "currentresponseId"
+  const {
+    trackingActive: ta,
+    currentResponseId: rid,
+    currentresponseId: legacyRid,
+    __stoppedBySurvey: stoppedFlag,
+    __stoppedReason: stoppedReason
+  } = await chrome.storage.local.get([
+    "trackingActive",
+    "currentResponseId",
+    "currentresponseId",
+    "__stoppedBySurvey",
+    "__stoppedReason"
   ]);
+
   trackingActive = !!ta;
-  responseId = rid || null;
+  responseId = rid || legacyRid || null;
+  surveyStopRecorded = !!stoppedFlag;
+  surveyStopReason = stoppedReason || null;
+
+  // migrate legacy key if present
+  if (!rid && legacyRid) {
+    await chrome.storage.local.set({ currentResponseId: legacyRid });
+    await chrome.storage.local.remove("currentresponseId");
+  }
 
   if (REMOTE_CONFIG_URL) {
     try {
@@ -170,7 +223,7 @@ function normalizeUrl(u) {
   } catch { return u; }
 }
 
-function handleTopFrameNav(details, sourceLabel) {
+async function handleTopFrameNav(details, sourceLabel) {
   if (!trackingActive || !responseId) return;
 
   const { tabId, url, transitionType, frameId } = details;
@@ -226,12 +279,19 @@ function handleTopFrameNav(details, sourceLabel) {
 
   // Mark dedupe so a same-URL history/commit pair doesn't double-log
   markDedup(tabId, url);
+
+  // If a Qualtrics tab navigates away, treat it as survey stop fallback
+  try {
+    await markSurveyStopped(`nav_away:${sourceLabel}`);
+  } catch (e) {
+    console.warn("[tracker] fallback stop failed", e);
+  }
 }
 
 
-chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
-  handleTopFrameNav(details, "same_tab");
-});
+chrome.webNavigation.onHistoryStateUpdated.addListener((details) =>
+  handleTopFrameNav(details, "same_tab")
+);
 
 // ====== MESSAGES FROM POPUP / CONTENT ======
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -240,7 +300,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === "START_TRACKING") {
     trackingActive = true;
     responseId = msg.responseId || responseId;
-    chrome.storage.local.set({ trackingActive: true, currentresponseId: responseId, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
+    surveyStopRecorded = false;
+    surveyStopReason = null;
+    chrome.storage.local.set({ trackingActive: true, currentResponseId: responseId, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
     startKeepAlive();
     sendResponse?.({ ok: true });
     return true;
@@ -248,6 +310,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg?.type === "STOP_TRACKING") {
     trackingActive = false;
+    surveyStopRecorded = false;
+    surveyStopReason = null;
     chrome.storage.local.set({ trackingActive: false });
     stopKeepAlive();
     sendResponse?.({ ok: true });
@@ -255,24 +319,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg?.type === "STOP_BY_SURVEY") {
-    trackingActive = false;
-
-    qualtricsTabs.clear();
-    tabQuestion.clear();
-
-    const stopped = {
-      trackingActive: false,
-      currentresponseId: responseId,
-      __stoppedBySurvey: true,
-      __stoppedReason: msg.reason || "survey complete",
-      __stoppedAt: new Date().toISOString()
-    };
-    chrome.storage.local.set(stopped);
-
-    stopKeepAlive();
-    flush();
-    console.log("[tracker] STOP_BY_SURVEY:", msg.reason || "");
-    sendResponse?.({ ok: true });
+    markSurveyStopped(msg.reason || "survey complete", { force: true })
+      .then(() => sendResponse?.({ ok: true }))
+      .catch((e) => {
+        console.warn("[tracker] STOP_BY_SURVEY persist failed", e);
+        sendResponse?.({ ok: false });
+      });
     return true;
   }
 
@@ -284,7 +336,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.rid) {
       responseId = msg.rid;
       trackingActive = true; // auto-start on first context
-      chrome.storage.local.set({ currentresponseId: responseId, trackingActive: true, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
+      surveyStopRecorded = false;
+      surveyStopReason = null;
+      chrome.storage.local.set({ currentResponseId: responseId, trackingActive: true, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
     }
 
     const q = msg.questionId || null;
@@ -390,9 +444,9 @@ chrome.webNavigation.onCreatedNavigationTarget.addListener(details => {
 });
 
 // 2) Same-tab out of Qualtrics + subsequent hops in external tabs
-chrome.webNavigation.onCommitted.addListener(details => {
-    handleTopFrameNav(details, "same_tab");
-});
+chrome.webNavigation.onCommitted.addListener((details) =>
+  handleTopFrameNav(details, "same_tab")
+);
 
 // 3) Stamp tabs created from ANY opener (covers cases onCreatedNavigationTarget misses)
 chrome.tabs.onCreated.addListener((tab) => {

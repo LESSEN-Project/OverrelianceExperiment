@@ -1,7 +1,7 @@
 // content.js — send question context and stop only when the survey explicitly ends
 
 let lastQ = null;
-let lastPid = null;
+let lastrid = null;
 let isStopped = false; // prevent any further sends after stop
 
 const STOP_PHASES = new Set([
@@ -10,6 +10,7 @@ const STOP_PHASES = new Set([
   "done",
   "finished",
   "final",
+  "post",
   "survey_end",
   "end",
   "end_of_survey"
@@ -71,21 +72,41 @@ function stopTrackingNow(reason) {
 }
 
 function readFromMarker() {
-  const m = document.getElementById('qtrack');
+  const m = document.getElementById("qtrack");
   return {
     q: m?.dataset?.q?.trim() || null,
+    rid: m?.dataset?.rid?.trim() || null,
     pid: m?.dataset?.pid?.trim() || null,
     phase: m?.dataset?.phase?.trim() || null
   };
 }
 
-function maybeSend(q, pid) {
+function maybeSendContext({ questionId, rid, pid }) {
   if (isStopped) return;
-  if (!q || q === lastQ) return;
-  lastQ = q;
-  if (pid) lastPid = pid;
-  chrome.runtime.sendMessage({ type: "CONTEXT_UPDATE", questionId: q, pid: lastPid || undefined });
-  console.log("[tracker/content] CONTEXT_UPDATE:", q, lastPid || "");
+  const q = typeof questionId === "string" && questionId.trim() ? questionId.trim() : null;
+  const ridCandidate = typeof rid === "string" && rid.trim() ? rid.trim() : null;
+  const pidCandidate = typeof pid === "string" && pid.trim() ? pid.trim() : null;
+  const nextRid = ridCandidate || pidCandidate || null;
+  const effectiveQ = q || lastQ;
+
+  const questionChanged = Boolean(effectiveQ && effectiveQ !== lastQ);
+  const ridChanged = Boolean(nextRid && nextRid !== lastrid);
+
+  if (!questionChanged && !ridChanged) return;
+
+  if (questionChanged) {
+    lastQ = effectiveQ;
+  }
+  if (nextRid) {
+    lastrid = nextRid;
+  }
+
+  chrome.runtime.sendMessage({
+    type: "CONTEXT_UPDATE",
+    questionId: lastQ || undefined,
+    rid: lastrid || undefined
+  });
+  console.log("[tracker/content] CONTEXT_UPDATE:", lastQ || "(none)", lastrid || "");
 }
 
 // --- 1) postMessage: question updates + explicit post-phase ---
@@ -93,39 +114,47 @@ window.addEventListener("message", (e) => {
   const d = e?.data;
   if (!d || d.__qtrack__ !== true) return;
 
+  const qid = (d.qid || "").trim();
+  const rid = (d.rid || "").trim() || null;
+  const pid = (d.pid || "").trim() || null;
+
   const stopReason = detectStopReason("postMessage", d);
   if (stopReason) {
+    if (qid || rid || pid) {
+      maybeSendContext({ questionId: qid || null, rid, pid });
+    }
     stopTrackingNow(stopReason);
     return;
   }
 
-  // B) Normal question context
-  const qid = (d.qid || '').trim();
-  const pid = (d.pid || '').trim() || null;
-  if (qid) {
-    maybeSend(qid, pid);
+  if (qid || rid || pid) {
+    maybeSendContext({ questionId: qid || null, rid, pid });
   }
 }, false);
 
-// --- 2) Observe #qtrack updates (q/pid + phase) ---
+// --- 2) Observe #qtrack updates (q/rid + phase) ---
 const marker = document.getElementById("qtrack");
 if (marker) {
   new MutationObserver(() => {
-    const { q, pid, phase } = readFromMarker();
+    const { q, rid, pid, phase } = readFromMarker();
     const payload = { ...marker.dataset, phase };
     const stopReason = detectStopReason("marker", payload);
 
     if (stopReason) {
+      if (q || rid || pid) {
+        maybeSendContext({ questionId: q, rid, pid });
+      }
       stopTrackingNow(stopReason);
       return;
     }
-    if (q) {
-      maybeSend(q, pid);
+    if (q || rid || pid) {
+      maybeSendContext({ questionId: q, rid, pid });
     }
   }).observe(marker, {
     attributes: true,
     attributeFilter: [
       "data-q",
+      "data-rid",
       "data-pid",
       "data-phase",
       "data-stop",
@@ -145,9 +174,12 @@ const init = readFromMarker();
 const initialPayload = marker ? { ...marker.dataset, phase: init.phase } : { phase: init.phase };
 const initStopReason = detectStopReason("marker(init)", initialPayload);
 if (initStopReason) {
+  if (init.q || init.rid || init.pid) {
+    maybeSendContext({ questionId: init.q, rid: init.rid, pid: init.pid });
+  }
   stopTrackingNow(initStopReason);
-} else if (init.q) {
-  maybeSend(init.q, init.pid);
+} else if (init.q || init.rid || init.pid) {
+  maybeSendContext({ questionId: init.q, rid: init.rid, pid: init.pid });
 }
 
 function setupEndOfSurveyObserver() {
