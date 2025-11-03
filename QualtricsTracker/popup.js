@@ -6,34 +6,34 @@ async function set(obj) {
 }
 
 const statusEl = document.getElementById('status');
-const pidRowEl = document.getElementById('pidRow');
-const pidValueEl = document.getElementById('pidValue');
+const ridRowEl = document.getElementById('ridRow');
+const ridValueEl = document.getElementById('ridValue');
 
 async function refresh() {
   const {
     trackingActive,
-    currentProlificId,
+    currentResponseId,
     __activeQuestionId,
     __stoppedBySurvey,
     __stoppedReason,
     __stoppedAt
   } = await get([
     'trackingActive',
-    'currentProlificId',
+    'currentResponseId',
     '__activeQuestionId',
     '__stoppedBySurvey',
     '__stoppedReason',
     '__stoppedAt'
   ]);
 
-  const showPid = Boolean(currentProlificId && __stoppedBySurvey);
+  const showrid = Boolean(currentResponseId && __stoppedBySurvey);
 
-  if (showPid) {
-    pidValueEl.textContent = currentProlificId;
-    pidRowEl.style.display = 'flex';
+  if (showrid) {
+    ridValueEl.textContent = currentResponseId;
+    ridRowEl.style.display = 'flex';
   } else {
-    pidValueEl.textContent = '';
-    pidRowEl.style.display = 'none';
+    ridValueEl.textContent = '';
+    ridRowEl.style.display = 'none';
   }
 
   if (trackingActive) {
@@ -43,7 +43,7 @@ async function refresh() {
   }
 
   if (__stoppedBySurvey) {
-    statusEl.textContent = showPid
+    statusEl.textContent = showrid
       ? 'Tracking stopped. Please copy your Response ID.'
       : 'Tracking is not active.';
   } else {
