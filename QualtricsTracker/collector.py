@@ -6,7 +6,7 @@ import csv, os
 # ====== CONFIG ======
 SAVE_DIR = "QualtricsTracker/logs"   # <-- your folder
 os.makedirs(SAVE_DIR, exist_ok=True)
-HEADER = ["timestamp_iso","url","question_id","source"]
+HEADER = ["timestamp_iso","url","question_id","source","search_results"]
 
 app = Flask(__name__)
 CORS(app)  # allow cross-origin from the extension
@@ -34,11 +34,20 @@ def ingest():
             w = csv.writer(f)
             if is_new:
                 w.writerow(HEADER)
+            search_results = ev.get("searchResults")
+            if isinstance(search_results, list):
+                search_str = " | ".join(search_results)
+            elif search_results is None:
+                search_str = ""
+            else:
+                search_str = str(search_results)
+
             w.writerow([
                 ev.get("ts"),
                 ev.get("url"),
                 ev.get("questionId"),
                 ev.get("source"),
+                search_str,
             ])
 
     print(f"[collector] wrote {len(events)} events", flush=True)

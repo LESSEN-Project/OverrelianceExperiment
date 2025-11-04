@@ -23,7 +23,6 @@ const ALLOWED_TRANSITIONS = [
   "link", "generated", "form_submit", "auto_bookmark",
   "typed", "keyword", "keyword_generated", "reload"
 ];
-
 // ====== HELPERS (define BEFORE use) ======
 function isQualtrics(u) {
   try { return QUALTRICS_HOST_REGEX.test(new URL(u).hostname); }
@@ -34,6 +33,500 @@ function isHttpLike(u) {
     const p = new URL(u).protocol;
     return p === "http:" || p === "https:";
   } catch { return false; }
+}
+
+const SEARCH_ENGINES = [
+  { name: "google", host: /(^|\.)google\.[a-z.]+$/i, queryParam: "q", path: /^\/search/i },
+  { name: "bing", host: /(^|\.)bing\.com$/i, queryParam: "q", path: /^\/(search|images\/search)/i },
+  { name: "duckduckgo", host: /(^|\.)duckduckgo\.com$/i, queryParam: "q" },
+  { name: "yahoo", host: /(^|\.)search\.yahoo\.com$/i, queryParam: "p", path: /^\/search/i }
+];
+const AI_PLACEHOLDER_PHRASES = [
+  "something went wrong",
+  "try again",
+  "history wasn't deleted",
+  "still working on it",
+  "generating your answer",
+  "loading your answer"
+];
+
+function isSearchResultsUrl(u) {
+  try {
+    const parsed = new URL(u);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    return SEARCH_ENGINES.some(({ host, queryParam, path }) => {
+      if (!host.test(parsed.hostname)) return false;
+      if (path && !path.test(parsed.pathname)) return false;
+      if (queryParam && !parsed.searchParams.get(queryParam)) return false;
+      return true;
+    });
+  } catch {
+    return false;
+  }
+}
+
+function isGoogleAiMode(url) {
+  try {
+    const parsed = new URL(url);
+    if (!/(^|\.)google\.[a-z.]+$/i.test(parsed.hostname)) return false;
+    return parsed.searchParams.get("udm") === "50";
+  } catch {
+    return false;
+  }
+}
+
+function canonicalizeUrlObject(url) {
+  url.hostname = url.hostname.replace(/^www\./i, "");
+  url.hash = "";
+
+  const GOOGLE_HOST_RE = /(^|\.)google\.[a-z.]+$/i;
+  if (GOOGLE_HOST_RE.test(url.hostname) && url.pathname === "/search") {
+    const allowedParams = new Set([
+      "q",
+      "udm",
+      "ia",
+      "tbm",
+      "tbs",
+      "hl",
+      "gl",
+      "oq"
+    ]);
+    const entries = [];
+    for (const [key, value] of url.searchParams) {
+      if (allowedParams.has(key)) {
+        entries.push([key, value]);
+      }
+    }
+    entries.sort((a, b) => {
+      if (a[0] === b[0]) return a[1].localeCompare(b[1]);
+      return a[0].localeCompare(b[0]);
+    });
+    const next = new URLSearchParams();
+    for (const [key, value] of entries) next.append(key, value);
+    url.search = next.toString() ? `?${next.toString()}` : "";
+  }
+
+  return url;
+}
+
+function canonicalizeUrlForLogging(u) {
+  try {
+    const url = new URL(u);
+    return canonicalizeUrlObject(url).toString();
+  } catch {
+    return null;
+  }
+}
+
+function isAiPlaceholderSummary(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return AI_PLACEHOLDER_PHRASES.some((phrase) => lower.includes(phrase));
+}
+
+async function maybeExtractSearchResults(tabId, url) {
+  if (tabId == null || !isSearchResultsUrl(url)) return null;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const MAX_INJECTION_ATTEMPTS = 5;
+  const INJECTION_DELAY_MS = 500;
+  const isAiMode = isGoogleAiMode(url);
+
+  for (let attempt = 0; attempt < MAX_INJECTION_ATTEMPTS; attempt++) {
+    try {
+      const injection = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: false },
+        func: (maxResults, options) => {
+          const isAiMode = options?.googleAiMode === true;
+          const MAX_AI_TEXT_LENGTH = 2000;
+
+          const MAX_ATTEMPTS = 10;
+          const ATTEMPT_DELAY_MS = 200;
+
+          const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+          const normalizeCandidate = (rawHref, depth = 0) => {
+            if (!rawHref || depth > 3) return null;
+            let href = rawHref.trim();
+            if (!href) return null;
+            try {
+              if (href.startsWith("javascript:") || href.startsWith("mailto:")) return null;
+              if (href.startsWith("//")) {
+                href = `${location.protocol}${href}`;
+              } else if (href.startsWith("/")) {
+                href = new URL(href, location.origin).href;
+              } else if (!/^https?:/i.test(href)) {
+                href = new URL(href, location.href).href;
+              }
+
+              const candidate = new URL(href);
+
+              // Handle Google redirect wrapper links (/url?...)
+              if (
+                candidate.hostname === location.hostname &&
+                candidate.pathname === "/url"
+              ) {
+                const redirected =
+                  candidate.searchParams.get("url") ||
+                  candidate.searchParams.get("q");
+                if (redirected) {
+                  return normalizeCandidate(redirected, depth + 1);
+                }
+                return null;
+              }
+
+              if (candidate.hostname === location.hostname) {
+                const internalPath = candidate.pathname || "";
+                if (/^\/(search|preferences|settings)/i.test(internalPath)) return null;
+                if (internalPath === "/" && candidate.searchParams?.has("q")) return null;
+              }
+
+              if (!/^https?:$/i.test(candidate.protocol)) return null;
+              return candidate.href;
+            } catch {
+              return null;
+            }
+          };
+
+          const collectAnchors = (selectors = []) => {
+            const gathered = [];
+            const seen = new Set();
+            for (const selector of selectors) {
+              const nodes = document.querySelectorAll(selector);
+              for (const node of nodes) {
+                if (!(node instanceof HTMLAnchorElement)) continue;
+                if (seen.has(node)) continue;
+                seen.add(node);
+                gathered.push(node);
+              }
+            }
+            return gathered;
+          };
+
+          const addAnchors = (anchors, { requireHeading = false } = {}) => {
+            const results = [];
+            const seen = new Set();
+
+            const push = (href) => {
+              if (!href || seen.has(href)) return false;
+              seen.add(href);
+              results.push(href);
+              return results.length >= maxResults;
+            };
+
+            for (const anchor of anchors) {
+              if (!(anchor instanceof HTMLAnchorElement)) continue;
+              if (requireHeading && !anchor.querySelector("h3")) continue;
+              const datasetHref =
+                anchor.getAttribute("data-url") ||
+                anchor.getAttribute("data-href") ||
+                anchor.dataset?.url ||
+                anchor.dataset?.href ||
+                "";
+              const normalized = normalizeCandidate(
+                anchor.getAttribute("href") ||
+                  datasetHref ||
+                  anchor.href ||
+                  ""
+              );
+              if (push(normalized)) break;
+            }
+            return results;
+          };
+
+          const collectOnce = () => {
+            const host = location.hostname;
+            let anchors = [];
+            let requireHeading = false;
+
+            if (/google\./i.test(host)) {
+              anchors = collectAnchors([
+                "#search a[href][data-ved][jsname]",
+                "#search a[jsname='UWckNb'][href]",
+                "#search a[jsname='V68bde'][href]",
+                "#search a[href][data-ved]",
+                "#search a[href]",
+                "[role='main'] a[href][data-ved]",
+                "[role='main'] a[jsname][href]"
+              ]);
+            } else if (/bing\.com$/i.test(host)) {
+              anchors = collectAnchors(["li.b_algo h2 a", "[role='main'] li.b_algo h2 a"]);
+              requireHeading = true;
+            } else if (/duckduckgo\.com$/i.test(host)) {
+              anchors = collectAnchors([
+                'a[data-testid="result-title-a"]',
+                ".result__a",
+                "[role='main'] a[data-testid='result-title-a']"
+              ]);
+            } else if (/yahoo\.com$/i.test(host)) {
+              anchors = collectAnchors(["#web h3 a", "#web a.ac-algo"]);
+              requireHeading = true;
+            } else {
+              anchors = collectAnchors(["main a[href]", "[role='main'] a[href]", "a.result__a"]);
+            }
+
+            if (!anchors.length) {
+              anchors = collectAnchors(["main a[href]", "[role='main'] a[href]", "#search a[href]"]);
+            }
+
+            let results = addAnchors(anchors, { requireHeading });
+
+            if (results.length < maxResults) {
+              const fallback = addAnchors(
+                collectAnchors([
+                  "main a[href]",
+                  "[role='main'] a[href]",
+                  "#links a[href]",
+                  "#results a[href]",
+                  "#search a[href]"
+                ])
+              );
+              const merged = new Set(results);
+              for (const item of fallback) {
+                if (!merged.has(item)) {
+                  results.push(item);
+                  merged.add(item);
+                  if (results.length >= maxResults) break;
+                }
+              }
+            }
+
+            return results.slice(0, maxResults);
+          };
+
+          const cleanText = (text) => {
+            if (!text) return "";
+            return text
+              .replace(/\u00a0/g, " ")
+              .replace(/\s+\n/g, "\n")
+              .replace(/\n{3,}/g, "\n\n")
+              .replace(/[ \t]{2,}/g, " ")
+              .trim();
+          };
+
+          const dedupe = (items) => {
+            const seen = new Set();
+            const out = [];
+            for (const item of items) {
+              const key = item.trim();
+              if (!key || seen.has(key)) continue;
+              seen.add(key);
+              out.push(item);
+            }
+            return out;
+          };
+
+          const extractAiAnswer = () => {
+            const ANSWER_SELECTORS = [
+              '[data-sfe="answer"]',
+              '[data-sfe="answer"] article',
+              '[data-sfe="ai_answer"]',
+              '[data-sfe="ai_response"]',
+              '[data-sfe="responsive_answer"]',
+              '[data-ai-answer-component]',
+              'section[data-attrid="wa:/results"]',
+              'div[jscontroller="Acetsd"]',
+              'div[jscontroller="kYr3ec"]',
+              'div[jscontroller="ewa7dc"]',
+              'div[jsname="TVKpob"]',
+              'div[jsname="yVl2pb"]',
+              'div[jsname="r6xKte"]',
+              'div[jsname="W297wb"]',
+              '[aria-live="polite"] [data-sfe="answer"]',
+              '[aria-live="polite"] [jsname="TVKpob"]',
+              '[aria-live="polite"] article',
+              'main article',
+              'main [data-ai-answer-component]'
+            ];
+
+            const candidateTexts = [];
+            const seenNodes = new Set();
+
+            for (const selector of ANSWER_SELECTORS) {
+              const nodes = document.querySelectorAll(selector);
+              for (const node of nodes) {
+                if (!(node instanceof HTMLElement)) continue;
+                if (seenNodes.has(node)) continue;
+                const text = cleanText(node.innerText || "");
+                if (!text || text.length < 40) continue;
+                candidateTexts.push(text);
+                seenNodes.add(node);
+              }
+            }
+
+            if (!candidateTexts.length) {
+              const liveRegions = Array.from(document.querySelectorAll('[aria-live]'));
+              for (const region of liveRegions) {
+                const text = cleanText(region?.innerText || "");
+                if (!text || text.length < 40) continue;
+                candidateTexts.push(text);
+                break;
+              }
+            }
+
+            if (!candidateTexts.length) return null;
+            const deduped = dedupe(candidateTexts);
+            if (!deduped.length) return null;
+            const primary = deduped.reduce((best, current) => (current.length > best.length ? current : best), "");
+            if (!primary) return null;
+            const paragraphs = primary.split(/\n{2,}/).map((p) => cleanText(p)).filter(Boolean);
+            const firstMeaningfulParagraph = paragraphs.find((p) => p.length >= 40) || paragraphs[0] || "";
+            let summary = firstMeaningfulParagraph;
+            if (!summary && primary) {
+              const sentences = primary.split(/(?<=\.)\s+/).filter(Boolean);
+              summary = sentences.slice(0, 2).join(" ");
+            }
+            if (!summary && primary) {
+              summary = primary;
+            }
+            if (summary.length > 400) summary = summary.slice(0, 400);
+            const full = primary.length > MAX_AI_TEXT_LENGTH ? primary.slice(0, MAX_AI_TEXT_LENGTH) : primary;
+            return { summary, full };
+          };
+
+          const attemptCollection = async () => {
+            let latest = { searchResults: [], aiSummary: null, aiAnswer: null, ready: false };
+            if (!window.__qtrackAiState) {
+              window.__qtrackAiState = { signature: null, stable: 0 };
+            }
+            const state = window.__qtrackAiState;
+
+            for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+              const searchResults = dedupe(collectOnce());
+              let aiSummary = null;
+              let aiFull = null;
+
+              if (isAiMode) {
+                const ai = extractAiAnswer();
+                if (ai) {
+                  aiSummary = ai.summary || null;
+                  aiFull = ai.full || null;
+                  if (aiSummary && isAiPlaceholderSummary(aiSummary)) {
+                    aiSummary = null;
+                    aiFull = null;
+                  }
+                }
+              }
+
+              const payload = {
+                searchResults,
+                aiSummary,
+                aiAnswer: aiFull,
+                ready: false
+              };
+
+              const signature = JSON.stringify([
+                searchResults,
+                aiSummary || "",
+                aiFull || ""
+              ]);
+
+              if (state.signature === signature) {
+                state.stable = (state.stable || 0) + 1;
+              } else {
+                state.signature = signature;
+                state.stable = 0;
+              }
+
+              const aiReady = !isAiMode || Boolean(aiSummary);
+              const stable = isAiMode ? state.stable >= 1 : true;
+
+              if (aiReady && stable) {
+                payload.ready = true;
+                return payload;
+              }
+
+              latest = payload;
+              await wait(ATTEMPT_DELAY_MS);
+            }
+
+            return latest;
+          };
+
+          return attemptCollection();
+        },
+        args: [10, { googleAiMode: isAiMode }]
+      });
+      const result = injection?.[0]?.result;
+      if (!result || typeof result !== "object") {
+        continue;
+      }
+      if (result.ready === false && attempt < MAX_INJECTION_ATTEMPTS - 1) {
+        await sleep(INJECTION_DELAY_MS);
+        continue;
+      }
+      const rawResults = Array.isArray(result.searchResults) ? result.searchResults : [];
+      const normalizedResults = rawResults.map((href) => {
+        try {
+          return new URL(href).href;
+        } catch {
+          return href;
+        }
+      });
+      const summaryText = typeof result.aiSummary === "string" ? result.aiSummary.trim() : "";
+      const answerText = typeof result.aiAnswer === "string" ? result.aiAnswer.trim() : "";
+      const combined = [];
+      if (summaryText) {
+        combined.push(`AI Summary: ${summaryText}`);
+      }
+      if (answerText && answerText !== summaryText) {
+        combined.push(`AI Answer: ${answerText}`);
+      }
+      for (const href of normalizedResults) {
+        if (href && !combined.includes(href)) combined.push(href);
+      }
+      return {
+        ready: result.ready === true,
+        items: combined,
+        summary: summaryText || null,
+        answer: answerText || null
+      };
+    } catch (e) {
+      const message = e?.message || "";
+      const retryable = /No frame|Cannot access contents|The tab was closed/i.test(message);
+      if (retryable && attempt < MAX_INJECTION_ATTEMPTS - 1) {
+        await sleep(INJECTION_DELAY_MS);
+        continue;
+      }
+      console.warn("[tracker] search results scrape failed", e);
+      break;
+    }
+  }
+  return null;
+}
+
+async function logNavigationEvent({ tabId, url, questionId, source }) {
+  const canonicalUrl = canonicalizeUrlForLogging(url) || url;
+  const entry = {
+    ts: new Date().toISOString(),
+    url: canonicalUrl,
+    questionId,
+    responseId,
+    source
+  };
+
+  try {
+    const extraction = await maybeExtractSearchResults(tabId, url);
+    if (extraction && extraction.ready === false) {
+      return;
+    }
+    if (extraction && Array.isArray(extraction.items) && extraction.items.length) {
+      entry.searchResults = extraction.items;
+    }
+  } catch (e) {
+    console.warn("[tracker] search results capture error", e);
+  }
+
+  const dedupeKey = `${tabId}|${canonicalUrl}|${questionId || ""}`;
+  const signature = entry.searchResults && entry.searchResults.length
+    ? JSON.stringify(entry.searchResults)
+    : "__URL_ONLY__";
+  const prevSignature = lastSearchCaptureByTab.get(dedupeKey);
+  if (prevSignature === signature) {
+    return;
+  }
+  lastSearchCaptureByTab.set(dedupeKey, signature);
+
+  enqueue(entry);
 }
 
 async function injectContentScriptToTab(tabId) {
@@ -101,6 +594,7 @@ let lastQuestionSeenAt = 0;              // ms epoch of last CONTEXT_UPDATE
 let activeQuestionId = null;
 let surveyStopRecorded = false;
 let surveyStopReason = null;
+const lastSearchCaptureByTab = new Map(); // `${tabId}|${url}` -> signature
 
 // ====== KEEP SERVICE WORKER ALIVE ======
 // Chrome suspends service workers after ~30s of inactivity.
@@ -150,6 +644,7 @@ async function markSurveyStopped(reason = "survey complete", { force = false } =
   qualtricsTabs.clear();
   tabQuestion.clear();
   lastFocusByTab.clear();
+  lastSearchCaptureByTab.clear();
   stopKeepAlive();
 
   const payload = {
@@ -216,10 +711,8 @@ loadSettings();
 
 function normalizeUrl(u) {
   try {
-    const x = new URL(u);
-    x.hostname = x.hostname.replace(/^www\./i, ""); // strip www.
-    x.hash = "";                                    // ignore fragments
-    return x.toString();
+    const url = new URL(u);
+    return canonicalizeUrlObject(url).toString();
   } catch { return u; }
 }
 
@@ -239,10 +732,9 @@ async function handleTopFrameNav(details, sourceLabel) {
   // Must have seen a question (Qx) this session
   if (!activeQuestionId) return;
 
-  // If this tab was just created and we logged its first nav already, skip the first commit
-  if (createdTabs.has(tabId)) {
+  const wasCreated = createdTabs.has(tabId);
+  if (wasCreated) {
     createdTabs.delete(tabId);
-    return;
   }
 
   // Drop exact-recent duplicates (commit + history, quick redirects, etc.)
@@ -250,9 +742,10 @@ async function handleTopFrameNav(details, sourceLabel) {
 
   // Determine question id for this tab
   let q = tabQuestion.get(tabId);
+  const wasQualtricsTab = qualtricsTabs.has(tabId);
 
   // If this was a Qualtrics tab navigating out (same-tab case), stamp now
-  if (!q && qualtricsTabs.has(tabId)) {
+  if (!q && wasQualtricsTab) {
     q = activeQuestionId;
     tabQuestion.set(tabId, q);
     qualtricsTabs.delete(tabId);
@@ -268,24 +761,15 @@ async function handleTopFrameNav(details, sourceLabel) {
   // If somehow still no q (shouldn't happen), bail
   if (!q) return;
 
-  // Log it
-  enqueue({
-    ts: new Date().toISOString(),
-    url,
-    questionId: q,
-    responseId,
-    source: sourceLabel // "same_tab" for both committed + SPA updates
-  });
-
   // Mark dedupe so a same-URL history/commit pair doesn't double-log
   markDedup(tabId, url);
 
-  // If a Qualtrics tab navigates away, treat it as survey stop fallback
-  try {
-    await markSurveyStopped(`nav_away:${sourceLabel}`);
-  } catch (e) {
-    console.warn("[tracker] fallback stop failed", e);
-  }
+  await logNavigationEvent({
+    tabId,
+    url,
+    questionId: q,
+    source: wasCreated ? "new_tab" : sourceLabel // treat created tabs as new_tab
+  });
 }
 
 
@@ -428,19 +912,8 @@ chrome.webNavigation.onCreatedNavigationTarget.addListener(details => {
   // Stamp new external tab
   tabQuestion.set(tabId, q);
 
-  // Log initial nav
-  enqueue({
-    ts: new Date().toISOString(),
-    url,
-    questionId: q,
-    responseId,
-    source: "new_tab"
-  });
-
   // prevent duplicate when onCommitted fires right after creation (redirect/canon)
   createdTabs.add(tabId);
-  // also mark dedupe by URL (harmless safety)
-  markDedup(tabId, url);
 });
 
 // 2) Same-tab out of Qualtrics + subsequent hops in external tabs
