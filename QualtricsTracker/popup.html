@@ -13,6 +13,16 @@
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     #ridRow { display:none; margin-top:8px; }
     #ridRow span:first-child { color:#333; }
+    .hidden { display:none; }
+    #reviewBtn { width:100%; margin-top:14px; }
+    #reviewSection { margin-top:12px; border-top:1px solid #eee; padding-top:10px; }
+    #logList { max-height:220px; overflow-y:auto; margin-top:8px; display:flex; flex-direction:column; gap:8px; }
+    .log-item { border:1px solid #e2e2e2; border-radius:8px; padding:8px; background:#fafafa; }
+    .log-meta { font-size:12px; color:#555; margin-bottom:4px; }
+    .log-url { font-size:13px; word-break:break-word; color:#222; }
+    .log-actions { display:flex; justify-content:flex-end; margin-top:6px; }
+    .remove-btn { font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid #cc4b4b; background:#fff; color:#cc4b4b; cursor:pointer; }
+    .remove-btn:hover { background:#fceaea; }
   </style>
 </head>
 <body>
@@ -22,6 +32,14 @@
   <div id="ridRow" class="row hint">
     <span>Response&nbsp;ID:</span>
     <span id="ridValue" class="mono"></span>
+  </div>
+
+  <button id="reviewBtn" type="button">Review tracked pages</button>
+
+  <div id="reviewSection" class="hidden">
+    <div id="logSummary" class="hint"></div>
+    <div id="logList"></div>
+    <div id="reviewMessage" class="hint"></div>
   </div>
 
   <script src="popup.js"></script>

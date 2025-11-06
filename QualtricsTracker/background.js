@@ -19,6 +19,7 @@ const QUALTRICS_URL_PATTERNS = [
 ];
 const BATCH_SIZE = 1;
 const FLUSH_INTERVAL_MS = 3000;
+const LOG_STATE_KEY = "__qtrack_log_state";
 const ALLOWED_TRANSITIONS = [
   "link", "generated", "form_submit", "auto_bookmark",
   "typed", "keyword", "keyword_generated", "reload"
@@ -526,7 +527,7 @@ async function logNavigationEvent({ tabId, url, questionId, source }) {
   }
   lastSearchCaptureByTab.set(dedupeKey, signature);
 
-  enqueue(entry);
+  await enqueue(entry);
 }
 
 async function injectContentScriptToTab(tabId) {
@@ -558,10 +559,14 @@ function isDup(tabId, url) {
   return dup;
 }
 
-function enqueue(entry) {
+async function enqueue(entry) {
   console.log("[tracker] enqueue", entry);
-  queue.push(entry);
-  if (queue.length >= BATCH_SIZE) flush();
+  const stored = await appendLogEntry(entry);
+  if (!stored) return;
+  queue.push(toUploadEvent(stored));
+  if (queue.length >= BATCH_SIZE) {
+    await flush();
+  }
 }
 
 async function flush() {
@@ -569,10 +574,13 @@ async function flush() {
   const batch = queue.splice(0, queue.length);
   console.log("[tracker] flushing", batch.length, "events to", collectorUrl);
   try {
+    const payload = {
+      events: batch.map(({ __logId, ...event }) => event)
+    };
     const resp = await fetch(collectorUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events: batch })
+      body: JSON.stringify(payload)
     });
     console.log("[tracker] upload status", resp.status);
   } catch (e) {
@@ -595,6 +603,257 @@ let activeQuestionId = null;
 let surveyStopRecorded = false;
 let surveyStopReason = null;
 const lastSearchCaptureByTab = new Map(); // `${tabId}|${url}` -> signature
+
+let logState = {
+  responseId: null,
+  entries: [],
+  removedCount: 0,
+  syncedAt: null,
+  updatedAt: null
+};
+let logsLoaded = false;
+const logStateReady = chrome.storage.local
+  .get([LOG_STATE_KEY])
+  .then((res) => {
+    const stored = res?.[LOG_STATE_KEY];
+    if (stored && typeof stored === "object") {
+      const entries = Array.isArray(stored.entries) ? stored.entries : [];
+      logState = {
+        responseId: stored.responseId || null,
+        entries,
+        removedCount: Number.isFinite(stored.removedCount) ? stored.removedCount : 0,
+        syncedAt: stored.syncedAt || stored.finalizedAt || null,
+        updatedAt: stored.updatedAt || null
+      };
+    }
+  })
+  .catch((e) => {
+    console.warn("[tracker] failed to load log state", e);
+  })
+  .finally(() => {
+    logsLoaded = true;
+  });
+async function ensureLogStateLoaded() {
+  if (logsLoaded) return;
+  await logStateReady;
+}
+
+function cloneEntry(entry) {
+  const clone = entry && typeof entry === "object" ? { ...entry } : {};
+  if (Array.isArray(entry.searchResults)) {
+    clone.searchResults = entry.searchResults.slice();
+  }
+  return clone;
+}
+
+function serializeLogState(state) {
+  return {
+    responseId: state.responseId || null,
+    entries: Array.isArray(state.entries) ? state.entries.map((entry) => {
+      const clone = cloneEntry(entry) || {};
+      return {
+        ...clone,
+        id: entry.id
+      };
+    }) : [],
+    removedCount: Number.isFinite(state.removedCount) ? state.removedCount : 0,
+    syncedAt: state.syncedAt || null,
+    updatedAt: state.updatedAt || null
+  };
+}
+
+async function persistLogState() {
+  await ensureLogStateLoaded();
+  const payload = serializeLogState(logState);
+  try {
+    await chrome.storage.local.set({ [LOG_STATE_KEY]: payload });
+  } catch (e) {
+    console.warn("[tracker] failed to persist log state", e);
+  }
+}
+
+async function resetLogState(newResponseId = null) {
+  await ensureLogStateLoaded();
+  const nowIso = new Date().toISOString();
+  logState = {
+    responseId: newResponseId,
+    entries: [],
+    removedCount: 0,
+    syncedAt: null,
+    updatedAt: nowIso
+  };
+  queue.length = 0;
+  await persistLogState();
+}
+
+function generateLogId() {
+  if (typeof crypto?.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `log-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function appendLogEntry(entry) {
+  await ensureLogStateLoaded();
+  if (!responseId) return null;
+
+  if (!logState.responseId || logState.responseId !== responseId) {
+    await resetLogState(responseId);
+  }
+
+  const storedEntry = {
+    ...cloneEntry(entry),
+    id: generateLogId()
+  };
+  if (!storedEntry.responseId) {
+    storedEntry.responseId = responseId || logState.responseId || null;
+  }
+  const nowIso = new Date().toISOString();
+  logState.entries.push(storedEntry);
+  logState.updatedAt = nowIso;
+  await persistLogState();
+  return storedEntry;
+}
+
+async function removeLogEntryById(id) {
+  await ensureLogStateLoaded();
+  if (!id) return { removed: false };
+  const idx = logState.entries.findIndex((entry) => entry.id === id);
+  if (idx === -1) return { removed: false };
+  const [removedEntry] = logState.entries.splice(idx, 1);
+  logState.removedCount = (logState.removedCount || 0) + 1;
+  logState.updatedAt = new Date().toISOString();
+  await persistLogState();
+  purgeQueuedEntriesById(id);
+  return {
+    removed: true,
+    remaining: logState.entries.length,
+    removedEntry,
+    index: idx
+  };
+}
+
+function toUploadEvent(entry) {
+  if (!entry || typeof entry !== "object") return {};
+  const { id, ...rest } = entry;
+  const clone = { ...rest };
+  if (!clone.responseId) {
+    clone.responseId = logState.responseId || responseId || null;
+  }
+  if (Array.isArray(clone.searchResults)) {
+    clone.searchResults = clone.searchResults.slice();
+  }
+  return { __logId: id || null, ...clone };
+}
+
+async function getLogReviewSnapshot() {
+  await ensureLogStateLoaded();
+  return {
+    responseId: logState.responseId || responseId || null,
+    removedCount: logState.removedCount || 0,
+    syncedAt: logState.syncedAt || null,
+    entries: logState.entries.map(({ id, ts, url }) => ({
+      id,
+      ts,
+      url
+    }))
+  };
+}
+
+function purgeQueuedEntriesById(logId) {
+  if (!logId) return;
+  if (!Array.isArray(queue) || queue.length === 0) return;
+  for (let i = queue.length - 1; i >= 0; i -= 1) {
+    if (queue[i]?.__logId === logId) {
+      queue.splice(i, 1);
+    }
+  }
+}
+
+async function uploadLogSnapshot(entries, meta = {}) {
+  if (!collectorUrl) {
+    throw new Error("Collector URL is not configured.");
+  }
+  const overwrite = meta?.overwrite === true;
+  if ((!Array.isArray(entries) || entries.length === 0) && !overwrite) {
+    throw new Error("Nothing to upload.");
+  }
+
+  const payloadEvents = Array.isArray(entries)
+    ? entries.map((entry) => {
+        const { __logId, ...event } = toUploadEvent(entry);
+        return event;
+      })
+    : [];
+
+  const payload = {
+    events: payloadEvents
+  };
+
+  const metaPayload = {};
+  if (overwrite) {
+    payload.overwrite = true;
+    metaPayload.overwrite = true;
+  }
+  if (meta.responseId) {
+    payload.responseId = meta.responseId;
+    metaPayload.responseId = meta.responseId;
+  }
+  if (meta.removedCount != null) {
+    payload.removedCount = meta.removedCount;
+    metaPayload.removedCount = meta.removedCount;
+  }
+  if (Object.keys(metaPayload).length) {
+    payload.meta = metaPayload;
+  }
+
+  const resp = await fetch(collectorUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Collector responded with ${resp.status}`);
+  }
+  return resp;
+}
+
+async function syncLogStateToCollector() {
+  await ensureLogStateLoaded();
+  if (!logState.responseId) return;
+  const entries = Array.isArray(logState.entries) ? logState.entries.slice() : [];
+  const syncedIds = new Set(entries.map((entry) => entry?.id).filter(Boolean));
+  await uploadLogSnapshot(entries, {
+    overwrite: true,
+    responseId: logState.responseId,
+    removedCount: logState.removedCount || 0
+  });
+  if (syncedIds.size && Array.isArray(queue) && queue.length) {
+    for (let i = queue.length - 1; i >= 0; i -= 1) {
+      const entryId = queue[i]?.__logId;
+      if (entryId && syncedIds.has(entryId)) {
+        queue.splice(i, 1);
+      }
+    }
+  }
+  logState.syncedAt = new Date().toISOString();
+  logState.updatedAt = logState.syncedAt;
+  await persistLogState();
+}
+
+async function ensureActiveLogSession(newResponseId) {
+  if (!newResponseId) return;
+  await ensureLogStateLoaded();
+  if (!logState.responseId) {
+    await resetLogState(newResponseId);
+    return;
+  }
+  if (logState.responseId !== newResponseId) {
+    console.warn("[tracker] responseId changed; resetting stored logs.", logState.responseId, "->", newResponseId);
+    await resetLogState(newResponseId);
+  }
+}
 
 // ====== KEEP SERVICE WORKER ALIVE ======
 // Chrome suspends service workers after ~30s of inactivity.
@@ -685,6 +944,9 @@ async function loadSettings() {
   responseId = rid || legacyRid || null;
   surveyStopRecorded = !!stoppedFlag;
   surveyStopReason = stoppedReason || null;
+  if (responseId) {
+    await ensureActiveLogSession(responseId);
+  }
 
   // migrate legacy key if present
   if (!rid && legacyRid) {
@@ -781,11 +1043,66 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) =>
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const tabId = sender?.tab?.id;
 
+  if (msg?.type === "GET_LOGS") {
+    (async () => {
+      try {
+        const snapshot = await getLogReviewSnapshot();
+        sendResponse?.({
+          ok: true,
+          ...snapshot,
+          trackingActive,
+          surveyStopped: surveyStopRecorded,
+          surveyStopReason,
+          hasTrackingContext: Boolean(activeQuestionId)
+        });
+      } catch (e) {
+        sendResponse?.({ ok: false, error: e?.message || String(e) });
+      }
+    })();
+    return true;
+  }
+
+  if (msg?.type === "REMOVE_LOG") {
+    (async () => {
+      try {
+        const removal = await removeLogEntryById(msg.id);
+        if (!removal.removed) {
+          sendResponse?.({ ok: false, error: "Entry not found." });
+          return;
+        }
+
+        try {
+          await syncLogStateToCollector();
+        } catch (syncError) {
+          if (removal.removedEntry) {
+            logState.entries.splice(removal.index ?? logState.entries.length, 0, removal.removedEntry);
+            logState.removedCount = Math.max(0, (logState.removedCount || 1) - 1);
+            logState.updatedAt = new Date().toISOString();
+            await persistLogState();
+          }
+          throw syncError;
+        }
+
+        const snapshot = await getLogReviewSnapshot();
+        sendResponse?.({
+          ok: true,
+          ...snapshot
+        });
+      } catch (e) {
+        sendResponse?.({ ok: false, error: e?.message || String(e) });
+      }
+    })();
+    return true;
+  }
+
   if (msg?.type === "START_TRACKING") {
     trackingActive = true;
     responseId = msg.responseId || responseId;
     surveyStopRecorded = false;
     surveyStopReason = null;
+    if (responseId) {
+      ensureActiveLogSession(responseId).catch((e) => console.warn("[tracker] ensureActiveLogSession failed (START_TRACKING)", e));
+    }
     chrome.storage.local.set({ trackingActive: true, currentResponseId: responseId, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
     startKeepAlive();
     sendResponse?.({ ok: true });
@@ -822,6 +1139,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       trackingActive = true; // auto-start on first context
       surveyStopRecorded = false;
       surveyStopReason = null;
+      ensureActiveLogSession(responseId).catch((e) => console.warn("[tracker] ensureActiveLogSession failed (CONTEXT_UPDATE)", e));
       chrome.storage.local.set({ currentResponseId: responseId, trackingActive: true, __stoppedBySurvey: false, __stoppedReason: null, __stoppedAt: null });
     }
 
@@ -880,7 +1198,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
     // We want tab_focus to always reflect the *current* question.
     // (Navigation attribution continues to use your existing stamping logic.)
 
-    enqueue({
+    await enqueue({
       ts: new Date().toISOString(),
       url,
       questionId: activeQuestionId,  // <-- always current Q for tab_focus
